@@ -1,0 +1,12 @@
+# Secrets
+Bookshelf/Secrets.xcconfig
+Bookshelf/GoogleService-Info.plist
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+
+# macOS
+.DS_Store

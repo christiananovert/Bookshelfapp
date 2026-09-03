@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1CDBC30A301BEC7F00500E51 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1CDBC309301BEC7F00500E51 /* FirebaseAuth */; };
+		1CDBC30C301BEC8B00500E51 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1CDBC30B301BEC8B00500E51 /* FirebaseCore */; };
+		1CFCB5053049F6E7009B9A1D /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 1CFCB5043049F6D7009B9A1D /* .gitignore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		1C272D94301BC4ED00DC5304 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,11 +33,41 @@
 		1C272D86301BC4EB00DC5304 /* Bookshelf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bookshelf.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C272D93301BC4ED00DC5304 /* BookshelfTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BookshelfTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C272D9D301BC4ED00DC5304 /* BookshelfUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BookshelfUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1CFCB5043049F6D7009B9A1D /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1CCC24CB303CE49000B2DC37 /* Exceptions for "Bookshelf" folder in "BookshelfTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = 1C272D92301BC4ED00DC5304 /* BookshelfTests */;
+		};
+		1CCC24CC303CE49000B2DC37 /* Exceptions for "Bookshelf" folder in "BookshelfUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = 1C272D9C301BC4ED00DC5304 /* BookshelfUITests */;
+		};
+		1CFCB5013049F569009B9A1D /* Exceptions for "Bookshelf" folder in "Bookshelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1C272D85301BC4EA00DC5304 /* Bookshelf */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1C272D88301BC4EB00DC5304 /* Bookshelf */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1CFCB5013049F569009B9A1D /* Exceptions for "Bookshelf" folder in "Bookshelf" target */,
+				1CCC24CB303CE49000B2DC37 /* Exceptions for "Bookshelf" folder in "BookshelfTests" target */,
+				1CCC24CC303CE49000B2DC37 /* Exceptions for "Bookshelf" folder in "BookshelfUITests" target */,
+			);
 			path = Bookshelf;
 			sourceTree = "<group>";
 		};
@@ -52,6 +88,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1CDBC30C301BEC8B00500E51 /* FirebaseCore in Frameworks */,
+				1CDBC30A301BEC7F00500E51 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,9 +113,11 @@
 		1C272D7D301BC4EA00DC5304 = {
 			isa = PBXGroup;
 			children = (
+				1CFCB5043049F6D7009B9A1D /* .gitignore */,
 				1C272D88301BC4EB00DC5304 /* Bookshelf */,
 				1C272D96301BC4ED00DC5304 /* BookshelfTests */,
 				1C272DA0301BC4ED00DC5304 /* BookshelfUITests */,
+				1CDBC308301BEC7F00500E51 /* Frameworks */,
 				1C272D87301BC4EB00DC5304 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +130,13 @@
 				1C272D9D301BC4ED00DC5304 /* BookshelfUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1CDBC308301BEC7F00500E51 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +159,8 @@
 			);
 			name = Bookshelf;
 			packageProductDependencies = (
+				1CDBC309301BEC7F00500E51 /* FirebaseAuth */,
+				1CDBC30B301BEC8B00500E51 /* FirebaseCore */,
 			);
 			productName = Bookshelf;
 			productReference = 1C272D86301BC4EB00DC5304 /* Bookshelf.app */;
@@ -195,6 +244,10 @@
 			);
 			mainGroup = 1C272D7D301BC4EA00DC5304;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1CDBC304301BE7D900500E51 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+				1CDBC305301BE86800500E51 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1C272D87301BC4EB00DC5304 /* Products */;
 			projectDirPath = "";
@@ -212,6 +265,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1CFCB5053049F6E7009B9A1D /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,13 +444,17 @@
 		};
 		1C272DA8301BC4EE00DC5304 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 1C272D88301BC4EB00DC5304 /* Bookshelf */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XSRY3JTSX9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bookshelf/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -407,7 +465,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Bookshelf.Bookshelf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ChristianAnovert.Bookshelf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -421,13 +479,17 @@
 		};
 		1C272DA9301BC4EE00DC5304 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 1C272D88301BC4EB00DC5304 /* Bookshelf */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XSRY3JTSX9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Bookshelf/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,7 +500,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Bookshelf.Bookshelf;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ChristianAnovert.Bookshelf;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -570,6 +632,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1CDBC304301BE7D900500E51 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+		1CDBC305301BE86800500E51 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.17.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1CDBC309301BEC7F00500E51 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1CDBC305301BE86800500E51 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		1CDBC30B301BEC8B00500E51 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1CDBC305301BE86800500E51 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1C272D7E301BC4EA00DC5304 /* Project object */;
 }
