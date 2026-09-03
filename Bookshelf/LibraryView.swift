@@ -7,7 +7,6 @@
 
 
 
-
 import SwiftUI
  
 // MARK: - Model
@@ -21,6 +20,9 @@ struct LibraryBook: Identifiable {
     let spineColor: Color
     /// 0.0–1.0 for "Reading" books; ignored otherwise.
     let progress: Double
+    /// Real cover art URL from search results. nil for the app-curated shelves,
+    /// which fall back to the colored spine design.
+    var coverURL: URL? = nil
 }
  
 enum ReadingStatus: String, CaseIterable {
@@ -37,26 +39,7 @@ enum ReadingStatus: String, CaseIterable {
     }
 }
  
-// MARK: - Sample data
- 
-private let sampleBooks: [LibraryBook] = [
-    LibraryBook(title: "The Midnight Library", author: "Matt Haig", status: .read,
-                spineColor: Color(red: 0.29, green: 0.30, blue: 0.44), progress: 1.0),
-    LibraryBook(title: "Project Hail Mary", author: "Andy Weir", status: .reading,
-                spineColor: Color(red: 0.62, green: 0.35, blue: 0.20), progress: 0.64),
-    LibraryBook(title: "Circe", author: "Madeline Miller", status: .read,
-                spineColor: Color(red: 0.55, green: 0.24, blue: 0.20), progress: 1.0),
-    LibraryBook(title: "Klara and the Sun", author: "Kazuo Ishiguro", status: .wantToRead,
-                spineColor: Color(red: 0.70, green: 0.53, blue: 0.24), progress: 0.0),
-    LibraryBook(title: "Tomorrow, and Tomorrow, and Tomorrow", author: "Gabrielle Zevin", status: .reading,
-                spineColor: Color(red: 0.30, green: 0.42, blue: 0.40), progress: 0.31),
-    LibraryBook(title: "The Song of Achilles", author: "Madeline Miller", status: .read,
-                spineColor: Color(red: 0.44, green: 0.20, blue: 0.22), progress: 1.0),
-    LibraryBook(title: "A Court of Thorns and Roses", author: "Sarah J. Maas", status: .wantToRead,
-                spineColor: Color(red: 0.50, green: 0.28, blue: 0.18), progress: 0.0),
-    LibraryBook(title: "Educated", author: "Tara Westover", status: .read,
-                spineColor: Color(red: 0.36, green: 0.42, blue: 0.30), progress: 1.0),
-]
+// MARK: - Curated shelves (not user data)
  
 /// Books the app is suggesting based on the user's taste — not yet on their shelf.
 private let recommendedBooks: [LibraryBook] = [
@@ -89,21 +72,22 @@ private let discoverBooks: [LibraryBook] = [
 // MARK: - Library View
  
 struct LibraryView: View {
-    @State private var books: [LibraryBook] = sampleBooks
+    /// The user's actual shelf. Starts empty — no sample data.
+    @State private var books: [LibraryBook] = []
     @State private var showingSearch = false
-
+ 
     private var currentlyReadingBooks: [LibraryBook] {
         books.filter { $0.status == .reading }
     }
-
+ 
     private var toBeReadBooks: [LibraryBook] {
         books.filter { $0.status == .wantToRead }
     }
-
+ 
     private var readBooks: [LibraryBook] {
         books.filter { $0.status == .read }
     }
-
+ 
     var body: some View {
         ZStack {
             LinearGradient(
@@ -112,23 +96,18 @@ struct LibraryView: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-
+ 
             VStack(spacing: 0) {
                 searchBarHeader
                     .padding(.top, 10)
                     .padding(.horizontal, 18)
-
+ 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 26) {
-                        if !currentlyReadingBooks.isEmpty {
-                            bookRow(title: "With a Bookmark ", books: currentlyReadingBooks, showBadge: false)
-                        }
-                        if !toBeReadBooks.isEmpty {
-                            bookRow(title: "To Be Read", books: toBeReadBooks, showBadge: false)
-                        }
-                        if !readBooks.isEmpty {
-                            bookRow(title: "Have Completed", books: readBooks, showBadge: false)
-                        }
+                    VStack(alignment: .leading, spacing: 30) {
+                        // All five sections always render now, each with its own shelf.
+                        bookRow(title: "With a Bookmark", books: currentlyReadingBooks, showBadge: false)
+                        bookRow(title: "To Be Read", books: toBeReadBooks, showBadge: false)
+                        bookRow(title: "Have Completed", books: readBooks, showBadge: false)
                         bookRow(title: "Your Recommendations", books: recommendedBooks, showBadge: false)
                         bookRow(title: "For Something New", books: discoverBooks, showBadge: false)
                     }
@@ -145,9 +124,9 @@ struct LibraryView: View {
             }
         }
     }
-
+ 
     // MARK: Search bar (replaces old "X books on your shelf" header)
-
+ 
     private var searchBarHeader: some View {
         Button {
             showingSearch = true
@@ -173,37 +152,85 @@ struct LibraryView: View {
         }
         .buttonStyle(.plain)
     }
-
-    // MARK: Sections (unchanged)
-
+ 
+    // MARK: Sections
+ 
+    /// A fixed height for the content area of every row (books + labels),
+    /// so every shelf plank lines up at the same visual "depth" regardless
+    /// of whether that row is empty or has a progress bar.
+    private let rowContentHeight: CGFloat = 190
+ 
+    /// A single horizontal shelf of books, physically resting on a wooden plank.
     private func bookRow(title: String, books: [LibraryBook], showBadge: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel(title)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(books) { book in
-                        BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
-                            .frame(width: 112)
+ 
+            Group {
+                if books.isEmpty {
+                    Text("This shelf is currently empty")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(Shelf.ink.opacity(0.45))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .bottom, spacing: 14) {
+                            ForEach(books) { book in
+                                BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
+                                    .frame(width: 112)
+                            }
+                        }
+                        .padding(.horizontal, 18)
                     }
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 4)
+            }
+            .frame(height: rowContentHeight, alignment: .bottom)
+            .padding(.bottom, 14) // breathing room above the plank
+            .background(alignment: .bottom) {
+                shelfPlank
             }
         }
     }
-
+ 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 15, weight: .bold, design: .rounded))
             .foregroundColor(Shelf.ink.opacity(0.8))
             .padding(.horizontal, 18)
     }
+ 
+    /// The wooden shelf ledge that book covers appear to sit on.
+    private var shelfPlank: some View {
+        VStack(spacing: 0) {
+            // Thin highlight along the front lip of the shelf.
+            Rectangle()
+                .fill(Shelf.coverGold.opacity(0.55))
+                .frame(height: 2)
+ 
+            // Wood body of the plank.
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.44, green: 0.29, blue: 0.17),
+                            Color(red: 0.30, green: 0.19, blue: 0.11)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 12)
+        }
+        .padding(.horizontal, 10)
+        .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 4)
+    }
 }
  
 // MARK: - Book card
  
-/// A small leather-bound "cover" card for one book, echoing the
-/// BookFrameCard styling used on HomeView.
+/// A small "cover" card for one book. Title and author render beneath
+/// the cover art rather than overlaid on top of it, so real cover images
+/// (which may have light backgrounds) stay legible.
 private struct BookCard: View {
     let book: LibraryBook
     /// Whether to show the small status pill (Read / Reading / Want) in the corner.
@@ -213,40 +240,33 @@ private struct BookCard: View {
     var showProgress: Bool = false
  
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
             // Cover face
             ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(
-                        LinearGradient(
-                            colors: [book.spineColor.opacity(0.95), book.spineColor],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .aspectRatio(3.0/4.2, contentMode: .fit)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Shelf.coverGold.opacity(0.55), lineWidth: 1.2)
-                            .padding(4)
-                    )
-                    .overlay(
-                        VStack(spacing: 6) {
-                            Spacer()
-                            Text(book.title)
-                                .font(.system(size: 13, weight: .bold, design: .serif))
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(3)
-                            Text(book.author)
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.75))
-                                .lineLimit(1)
-                            Spacer()
+                Group {
+                    if let coverURL = book.coverURL {
+                        AsyncImage(url: coverURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            default:
+                                spineFill // shown while loading or if the load fails
+                            }
                         }
-                        .padding(.horizontal, 10)
-                    )
-                    .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 4)
+                    } else {
+                        spineFill
+                    }
+                }
+                .aspectRatio(3.0/4.2, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Shelf.coverGold.opacity(0.55), lineWidth: 1.2)
+                        .padding(4)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 4)
  
                 if showBadge {
                     StatusBadge(status: book.status)
@@ -254,11 +274,36 @@ private struct BookCard: View {
                 }
             }
  
+            // Title & author beneath the cover
+            VStack(alignment: .leading, spacing: 1) {
+                Text(book.title)
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .foregroundColor(Shelf.ink)
+                    .lineLimit(2)
+                Text(book.author)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(Shelf.ink.opacity(0.6))
+                    .lineLimit(1)
+            }
+ 
             if showProgress {
                 ProgressBar(value: book.progress, tint: book.status.tintColor)
-                    .padding(.top, 8)
+                    .padding(.top, 2)
             }
         }
+    }
+ 
+    /// Plain colored gradient, used as the fallback when there's no
+    /// cover art (curated shelves) or while a real cover is loading.
+    private var spineFill: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(
+                LinearGradient(
+                    colors: [book.spineColor.opacity(0.95), book.spineColor],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
     }
 }
  
@@ -299,4 +344,3 @@ private struct ProgressBar: View {
         LibraryView()
     }
 }
- 

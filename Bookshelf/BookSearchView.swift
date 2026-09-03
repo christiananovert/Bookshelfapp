@@ -89,7 +89,8 @@ struct BookSearchView: View {
             author: item.volumeInfo.authors?.first ?? "Unknown",
             status: status,
             spineColor: item.volumeInfo.title.spineColor,
-            progress: status == .read ? 1.0 : 0.0
+            progress: status == .read ? 1.0 : 0.0,
+            coverURL: item.volumeInfo.secureThumbnailURL   // NEW
         )
         onAdd(book)
         dismiss()
@@ -98,18 +99,16 @@ struct BookSearchView: View {
     @State private var errorMessage: String?
 
     private func runSearch() {
-        print("runSearch called with query:", query)
         guard !query.isEmpty else { return }
         isSearching = true
         errorMessage = nil
         Task {
             do {
-                results = try await searchBooks(query: query)
-                print("Got \(results.count) results")
+                let raw = try await searchBooks(query: query)
+                results = raw.filter { !$0.looksLikeBundle }
             } catch {
                 results = []
                 errorMessage = error.localizedDescription
-                print("Search error:", error)
             }
             isSearching = false
         }
@@ -125,6 +124,19 @@ struct GoogleBooksResponse: Decodable {
 struct GoogleBookItem: Decodable, Identifiable {
     var id: String { volumeInfo.title + (volumeInfo.authors?.first ?? "") }
     let volumeInfo: VolumeInfo
+}
+
+extension GoogleBookItem {
+    var looksLikeBundle: Bool {
+        let bundleKeywords = [
+            "box set", "boxed set", "boxset",
+            "collection", "complete series", "complete collection",
+            "omnibus", "bundle", "trilogy bundle",
+            "books 1-", "books 1–", "vol. 1-", "volumes 1-", "deluxe"
+        ]
+        let haystack = volumeInfo.title.lowercased()
+        return bundleKeywords.contains { haystack.contains($0) }
+    }
 }
 
 struct VolumeInfo: Decodable {
@@ -144,7 +156,7 @@ struct ImageLinks: Decodable {
 
 func searchBooks(query: String) async throws -> [GoogleBookItem] {
     let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-    let url = URL(string: "https://www.googleapis.com/books/v1/volumes?q=\(encoded)&maxResults=20&key=\(Secrets.googleBooksAPIKey)")!
+    let url = URL(string: "https://www.googleapis.com/books/v1/volumes?q=\(encoded)&maxResults=20&printType=books&key=\(Secrets.googleBooksAPIKey)")!
     let (data, _) = try await URLSession.shared.data(from: url)
     let result = try JSONDecoder().decode(GoogleBooksResponse.self, from: data)
     return result.items ?? []
