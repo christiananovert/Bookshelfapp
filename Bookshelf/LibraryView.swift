@@ -39,36 +39,6 @@ enum ReadingStatus: String, CaseIterable {
     }
 }
  
-// MARK: - Curated shelves (not user data)
- 
-/// Books the app is suggesting based on the user's taste — not yet on their shelf.
-private let recommendedBooks: [LibraryBook] = [
-    LibraryBook(title: "Piranesi", author: "Susanna Clarke", status: .wantToRead,
-                spineColor: Color(red: 0.26, green: 0.34, blue: 0.38), progress: 0.0),
-    LibraryBook(title: "The Invisible Life of Addie LaRue", author: "V.E. Schwab", status: .wantToRead,
-                spineColor: Color(red: 0.24, green: 0.28, blue: 0.46), progress: 0.0),
-    LibraryBook(title: "The House in the Cerulean Sea", author: "TJ Klune", status: .wantToRead,
-                spineColor: Color(red: 0.20, green: 0.45, blue: 0.48), progress: 0.0),
-    LibraryBook(title: "Mexican Gothic", author: "Silvia Moreno-Garcia", status: .wantToRead,
-                spineColor: Color(red: 0.42, green: 0.20, blue: 0.24), progress: 0.0),
-    LibraryBook(title: "The Night Circus", author: "Erin Morgenstern", status: .wantToRead,
-                spineColor: Color(red: 0.16, green: 0.16, blue: 0.18), progress: 0.0),
-]
- 
-/// A rotating "something different" shelf — genres or styles outside the user's usual picks.
-private let discoverBooks: [LibraryBook] = [
-    LibraryBook(title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", status: .wantToRead,
-                spineColor: Color(red: 0.32, green: 0.40, blue: 0.24), progress: 0.0),
-    LibraryBook(title: "The Three-Body Problem", author: "Liu Cixin", status: .wantToRead,
-                spineColor: Color(red: 0.18, green: 0.22, blue: 0.32), progress: 0.0),
-    LibraryBook(title: "Pachinko", author: "Min Jin Lee", status: .wantToRead,
-                spineColor: Color(red: 0.52, green: 0.44, blue: 0.20), progress: 0.0),
-    LibraryBook(title: "Gödel, Escher, Bach", author: "Douglas Hofstadter", status: .wantToRead,
-                spineColor: Color(red: 0.46, green: 0.30, blue: 0.14), progress: 0.0),
-    LibraryBook(title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", status: .wantToRead,
-                spineColor: Color(red: 0.30, green: 0.30, blue: 0.50), progress: 0.0),
-]
- 
 // MARK: - Library View
  
 struct LibraryView: View {
@@ -107,9 +77,9 @@ struct LibraryView: View {
                         // All five sections always render now, each with its own shelf.
                         bookRow(title: "With a Bookmark", books: currentlyReadingBooks, showBadge: false)
                         bookRow(title: "To Be Read", books: toBeReadBooks, showBadge: false)
-                        bookRow(title: "Have Completed", books: readBooks, showBadge: false)
-                        bookRow(title: "Your Recommendations", books: recommendedBooks, showBadge: false)
-                        bookRow(title: "For Something New", books: discoverBooks, showBadge: false)
+                        bookRow(title: "Have Completed", books: readBooks, showBadge: false, enableReview: true)
+                        bookRow(title: "Your Recommendations", books: [], showBadge: false)
+                        bookRow(title: "For Something New", books: [], showBadge: false)
                     }
                     .padding(.top, 14)
                     .padding(.bottom, 24)
@@ -158,11 +128,13 @@ struct LibraryView: View {
     /// A fixed height for the content area of every row (books + labels),
     /// so every shelf plank lines up at the same visual "depth" regardless
     /// of whether that row is empty or has a progress bar.
-    private let rowContentHeight: CGFloat = 190
+    private let rowContentHeight: CGFloat = 215
  
     /// A single horizontal shelf of books, physically resting on a wooden plank.
-    private func bookRow(title: String, books: [LibraryBook], showBadge: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    /// When `enableReview` is true, tapping a book navigates to a page where
+    /// the user can write their own review of that book.
+    private func bookRow(title: String, books: [LibraryBook], showBadge: Bool, enableReview: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             sectionLabel(title)
  
             Group {
@@ -176,8 +148,18 @@ struct LibraryView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(alignment: .bottom, spacing: 14) {
                             ForEach(books) { book in
-                                BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
+                                if enableReview {
+                                    NavigationLink {
+                                        BookReviewView(book: book)
+                                    } label: {
+                                        BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
+                                    }
+                                    .buttonStyle(.plain)
                                     .frame(width: 112)
+                                } else {
+                                    BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
+                                        .frame(width: 112)
+                                }
                             }
                         }
                         .padding(.horizontal, 18)
@@ -337,6 +319,110 @@ private struct ProgressBar: View {
     }
 }
  
+// MARK: - Book Review
+ 
+/// A dedicated page for writing your own thoughts on a completed book.
+/// Reached by tapping a book on the "Have Completed" shelf.
+struct BookReviewView: View {
+    let book: LibraryBook
+ 
+    /// The user's review text. Empty for now — nothing pre-filled.
+    @State private var reviewText: String = ""
+ 
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Shelf.wallTop, Shelf.wallBottom],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+ 
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+ 
+                    Text("Your Review")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(Shelf.ink.opacity(0.8))
+ 
+                    TextEditor(text: $reviewText)
+                        .font(.system(size: 15, weight: .regular, design: .rounded))
+                        .foregroundColor(Shelf.ink)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 260)
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.white.opacity(0.6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Shelf.ink.opacity(0.1), lineWidth: 1)
+                        )
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 24)
+            }
+        }
+        .navigationTitle("Review")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+ 
+    private var header: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Group {
+                if let coverURL = book.coverURL {
+                    AsyncImage(url: coverURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        default:
+                            spineFill
+                        }
+                    }
+                } else {
+                    spineFill
+                }
+            }
+            .aspectRatio(3.0/4.2, contentMode: .fit)
+            .frame(width: 84)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Shelf.coverGold.opacity(0.55), lineWidth: 1.2)
+            )
+            .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 4)
+ 
+            VStack(alignment: .leading, spacing: 4) {
+                Text(book.title)
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .foregroundColor(Shelf.ink)
+                Text(book.author)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(Shelf.ink.opacity(0.6))
+            }
+            .padding(.top, 4)
+ 
+            Spacer()
+        }
+    }
+ 
+    private var spineFill: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(
+                LinearGradient(
+                    colors: [book.spineColor.opacity(0.95), book.spineColor],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+    }
+}
+ 
 // MARK: - Preview
  
 #Preview {
@@ -344,3 +430,4 @@ private struct ProgressBar: View {
         LibraryView()
     }
 }
+ 

@@ -25,12 +25,13 @@ enum Shelf {
  
 // MARK: - Navigation destinations
  
-/// The four screens reachable from HomeView's buttons.
+/// The five screens reachable from HomeView's buttons.
 enum HomeDestination: Hashable {
     case settings
     case friends
     case library
     case forYou
+    case clubs
 }
  
 struct HomeView: View {
@@ -70,6 +71,8 @@ struct HomeView: View {
                     LibraryView()
                 case .forYou:
                     ForYouView()
+                case .clubs:
+                    ClubsView()
                 }
             }
         }
@@ -188,8 +191,8 @@ private struct BookFrameCard: View {
  
 // MARK: - Bottom navigation
  
-/// Placeholder bottom bar: the user's own library, their friends, and a
-/// "for you" style book discovery feed.
+/// Placeholder bottom bar: the user's own library, their friends, a
+/// "for you" style book discovery feed, and their club chats/DMs.
 private struct BottomNavBar: View {
     var body: some View {
         HStack {
@@ -211,8 +214,15 @@ private struct BottomNavBar: View {
                 NavIconLabel(systemName: "sparkles.rectangle.stack.fill", label: "For You")
             }
             .buttonStyle(.plain)
+ 
+            Spacer()
+ 
+            NavigationLink(value: HomeDestination.clubs) {
+                NavIconLabel(systemName: "bubble.left.and.bubble.right.fill", label: "Clubs")
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 36)
+        .padding(.horizontal, 28)
         .padding(.top, 12)
         .padding(.bottom, 22)
         .background(

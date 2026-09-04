@@ -11,7 +11,8 @@ import SwiftUI
  
 /// A simple full-screen placeholder that matches the app's warm,
 /// book-themed look. Swap the body out for real content later.
-private struct PlaceholderPage: View {
+/// Not private: shared with SettingsView.swift's destination stubs.
+struct PlaceholderPage: View {
     let title: String
     let systemImage: String
     let caption: String
@@ -54,18 +55,6 @@ private struct PlaceholderPage: View {
     }
 }
  
-// MARK: - Settings
- 
-struct SettingsView: View {
-    var body: some View {
-        PlaceholderPage(
-            title: "Settings",
-            systemImage: "gearshape.fill",
-            caption: "Account, notifications, and app preferences will live here."
-        )
-    }
-}
- 
 // MARK: - Friends
  
 struct FriendsView: View {
@@ -78,7 +67,7 @@ struct FriendsView: View {
     }
 }
  
-
+ 
  
 // MARK: - For You
  
@@ -91,4 +80,13 @@ struct ForYouView: View {
         )
     }
 }
- 
+
+struct ClubsView: View {
+    var body: some View {
+        PlaceholderPage(
+            title: "Clubs",
+            systemImage: "bubble.left.and.bubble.right.fill",
+            caption: "Your book club chats and DMs with other readers will show up here."
+        )
+    }
+}
