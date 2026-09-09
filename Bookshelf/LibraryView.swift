@@ -4,16 +4,20 @@
 //
 //  Created by Christian Anovert on 8/31/26.
 //
-
-
-
+ 
+ 
+ 
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
  
 // MARK: - Model
  
 /// A single book entry in the user's library.
 struct LibraryBook: Identifiable {
-    let id = UUID()
+    /// Matches the Firestore document ID once persisted, so add/update/delete
+    /// all address the same doc. Generated locally when a book is first created.
+    var id: String = UUID().uuidString
     let title: String
     let author: String
     let status: ReadingStatus
@@ -23,6 +27,80 @@ struct LibraryBook: Identifiable {
     /// Real cover art URL from search results. nil for the app-curated shelves,
     /// which fall back to the colored spine design.
     var coverURL: URL? = nil
+}
+ 
+// MARK: - Firestore mapping
+ 
+extension LibraryBook {
+    /// Rebuilds a book from a Firestore document's ID + field dictionary.
+    /// Returns nil if required fields are missing/malformed, so a single
+    /// corrupt doc can't crash the whole shelf load — it's just skipped.
+    init?(id: String, data: [String: Any]) {
+        guard
+            let title = data["title"] as? String,
+            let author = data["author"] as? String,
+            let statusRaw = data["status"] as? String,
+            let status = ReadingStatus(rawValue: statusRaw)
+        else { return nil }
+ 
+        self.id = id
+        self.title = title
+        self.author = author
+        self.status = status
+        self.spineColor = Color(hex: data["spineColorHex"] as? String ?? "#CCA84D")
+        self.progress = data["progress"] as? Double ?? 0.0
+        if let coverURLString = data["coverURL"] as? String {
+            self.coverURL = URL(string: coverURLString)
+        } else {
+            self.coverURL = nil
+        }
+    }
+ 
+    /// The Firestore-writable representation of this book.
+    var firestoreData: [String: Any] {
+        var data: [String: Any] = [
+            "title": title,
+            "author": author,
+            "status": status.rawValue,
+            "spineColorHex": spineColor.hexString,
+            "progress": progress,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        if let coverURL {
+            data["coverURL"] = coverURL.absoluteString
+        }
+        return data
+    }
+}
+ 
+// MARK: - Color <-> hex
+ 
+private extension Color {
+    /// Builds a Color from a "#RRGGBB" string. Falls back to a neutral gold
+    /// if the string is malformed, so a bad stored value never crashes the app.
+    init(hex: String) {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("#") { cleaned.removeFirst() }
+ 
+        var value: UInt64 = 0
+        guard cleaned.count == 6, Scanner(string: cleaned).scanHexInt64(&value) else {
+            self = Color(red: 0.80, green: 0.66, blue: 0.30)
+            return
+        }
+ 
+        let r = Double((value & 0xFF0000) >> 16) / 255.0
+        let g = Double((value & 0x00FF00) >> 8) / 255.0
+        let b = Double(value & 0x0000FF) / 255.0
+        self.init(red: r, green: g, blue: b)
+    }
+ 
+    /// Renders this Color as "#RRGGBB" for storage.
+    var hexString: String {
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    }
 }
  
 enum ReadingStatus: String, CaseIterable {
@@ -42,9 +120,24 @@ enum ReadingStatus: String, CaseIterable {
 // MARK: - Library View
  
 struct LibraryView: View {
-    /// The user's actual shelf. Starts empty — no sample data.
+    /// The user's actual shelf, loaded from Firestore on appear.
     @State private var books: [LibraryBook] = []
     @State private var showingSearch = false
+    /// The book currently awaiting the "are you sure?" confirmation.
+    /// Non-nil drives the confirmationDialog below.
+    @State private var bookPendingDeletion: LibraryBook?
+    /// True until the initial Firestore fetch completes, so we don't flash
+    /// "This shelf is currently empty" before the real data has loaded.
+    @State private var isLoadingBooks = true
+ 
+    private let db = Firestore.firestore()
+ 
+    /// The signed-in user's books live at users/{uid}/books/{bookId}.
+    /// nil if, for whatever reason, nobody's signed in when this loads.
+    private var booksCollection: CollectionReference? {
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
+        return db.collection("users").document(uid).collection("books")
+    }
  
     private var currentlyReadingBooks: [LibraryBook] {
         books.filter { $0.status == .reading }
@@ -74,12 +167,19 @@ struct LibraryView: View {
  
                 ScrollView {
                     VStack(alignment: .leading, spacing: 30) {
-                        // All five sections always render now, each with its own shelf.
-                        bookRow(title: "With a Bookmark", books: currentlyReadingBooks, showBadge: false)
-                        bookRow(title: "To Be Read", books: toBeReadBooks, showBadge: false)
-                        bookRow(title: "Have Completed", books: readBooks, showBadge: false, enableReview: true)
-                        bookRow(title: "Your Recommendations", books: [], showBadge: false)
-                        bookRow(title: "For Something New", books: [], showBadge: false)
+                        if isLoadingBooks {
+                            ProgressView()
+                                .tint(Shelf.ink)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 60)
+                        } else {
+                            // All five sections always render now, each with its own shelf.
+                            bookRow(title: "With a Bookmark", books: currentlyReadingBooks, showBadge: false)
+                            bookRow(title: "To Be Read", books: toBeReadBooks, showBadge: false)
+                            bookRow(title: "Have Completed", books: readBooks, showBadge: false, enableReview: true)
+                            bookRow(title: "Your Recommendations", books: [], showBadge: false)
+                            bookRow(title: "For Something New", books: [], showBadge: false)
+                        }
                     }
                     .padding(.top, 14)
                     .padding(.bottom, 24)
@@ -88,9 +188,65 @@ struct LibraryView: View {
         }
         .navigationTitle("Your Library")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await loadBooks()
+        }
         .sheet(isPresented: $showingSearch) {
             BookSearchView { newBook in
-                books.append(newBook)
+                addBook(newBook)
+            }
+        }
+        .alert(
+            "Are you sure you want to take this book off the shelf?",
+            isPresented: Binding(
+                get: { bookPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented { bookPendingDeletion = nil }
+                }
+            )
+        ) {
+            Button("Remove Book", role: .destructive) {
+                if let book = bookPendingDeletion {
+                    deleteBook(book)
+                }
+                bookPendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) {
+                bookPendingDeletion = nil
+            }
+        }
+    }
+ 
+    // MARK: Firestore sync
+ 
+    /// Fetches the signed-in user's shelf once, on first appear. Ordered by
+    /// when each book was added, so the shelf order stays stable across sessions.
+    private func loadBooks() async {
+        guard let booksCollection else {
+            isLoadingBooks = false
+            return
+        }
+        do {
+            let snapshot = try await booksCollection.order(by: "updatedAt").getDocuments()
+            books = snapshot.documents.compactMap { LibraryBook(id: $0.documentID, data: $0.data()) }
+        } catch {
+            // A failed load just leaves the shelf empty for this session rather
+            // than crashing — the user can pull to refresh once that's added.
+            print("Failed to load library: \(error)")
+        }
+        isLoadingBooks = false
+    }
+ 
+    /// Adds a book locally (instant UI feedback) and writes it to Firestore
+    /// in the background so it's still there next time the app launches.
+    private func addBook(_ book: LibraryBook) {
+        books.append(book)
+        guard let booksCollection else { return }
+        Task {
+            do {
+                try await booksCollection.document(book.id).setData(book.firestoreData)
+            } catch {
+                print("Failed to save book: \(error)")
             }
         }
     }
@@ -123,6 +279,40 @@ struct LibraryView: View {
         .buttonStyle(.plain)
     }
  
+    // MARK: Deleting
+ 
+    /// Removes a book from the shelf with a small fade/slide-out animation,
+    /// and deletes the matching Firestore doc in the background.
+    private func deleteBook(_ book: LibraryBook) {
+        withAnimation(.easeOut(duration: 0.2)) {
+            books.removeAll { $0.id == book.id }
+        }
+        guard let booksCollection else { return }
+        Task {
+            do {
+                try await booksCollection.document(book.id).delete()
+            } catch {
+                print("Failed to delete book: \(error)")
+            }
+        }
+    }
+ 
+    /// Small dark trash-circle button overlaid on the top-left corner of a cover.
+    /// Kept as a sibling overlay (not inside BookCard) so its tap target never
+    /// competes with a wrapping NavigationLink's tap target. Tapping it doesn't
+    /// delete directly — it just triggers the confirmation dialog above.
+    private func deleteButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "trash.fill")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white)
+                .padding(6)
+                .background(Circle().fill(Color.black.opacity(0.55)))
+        }
+        .buttonStyle(.plain)
+        .padding(4)
+    }
+ 
     // MARK: Sections
  
     /// A fixed height for the content area of every row (books + labels),
@@ -132,7 +322,8 @@ struct LibraryView: View {
  
     /// A single horizontal shelf of books, physically resting on a wooden plank.
     /// When `enableReview` is true, tapping a book navigates to a page where
-    /// the user can write their own review of that book.
+    /// the user can write their own review of that book. Every book also gets
+    /// a small trash button in its top-left corner to remove it from the shelf.
     private func bookRow(title: String, books: [LibraryBook], showBadge: Bool, enableReview: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             sectionLabel(title)
@@ -156,9 +347,15 @@ struct LibraryView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .frame(width: 112)
+                                    .overlay(alignment: .topLeading) {
+                                        deleteButton { bookPendingDeletion = book }
+                                    }
                                 } else {
                                     BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
                                         .frame(width: 112)
+                                        .overlay(alignment: .topLeading) {
+                                            deleteButton { bookPendingDeletion = book }
+                                        }
                                 }
                             }
                         }
@@ -430,4 +627,3 @@ struct BookReviewView: View {
         LibraryView()
     }
 }
- 

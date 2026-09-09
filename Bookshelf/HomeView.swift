@@ -52,7 +52,7 @@ struct HomeView: View {
  
                     Spacer(minLength: 12)
  
-                    BookFrameCard()
+                    BookFrameCard(username: authViewModel.username)
                         .padding(.horizontal, 20)
  
                     Spacer(minLength: 12)
@@ -129,22 +129,22 @@ private struct IconPillLabel: View {
  
 /// Renders the main content area as the front cover of an open book —
 /// a leather-look cover with a gold-rule border, framing an empty page
-/// where the friends' reviews feed will eventually go.
+/// where the friends' reviews feed will eventually go. The header now
+/// greets the signed-in user by their username instead of a static label.
 private struct BookFrameCard: View {
+    /// The signed-in user's username. Empty while it's still loading (e.g.
+    /// right after launch, before Firestore responds), in which case a
+    /// generic greeting is shown instead of leaving a blank gap.
+    let username: String
+ 
     var body: some View {
         VStack(spacing: 0) {
             // Header stitched into the "cover"
-            VStack(spacing: 2) {
-                Text("From Your Shelf")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .tracking(2)
-                    .foregroundColor(Shelf.coverGold)
-                Text("Friends' Reviews")
-                    .font(.system(size: 20, weight: .bold, design: .serif))
-                    .foregroundColor(.white)
-            }
-            .padding(.top, 18)
-            .padding(.bottom, 14)
+            Text(username.isEmpty ? "Hello!" : "Hello, \(username)")
+                .font(.system(size: 20, weight: .bold, design: .serif))
+                .foregroundColor(.white)
+                .padding(.top, 18)
+                .padding(.bottom, 14)
  
             // Inner "page" — empty for now, ready to hold the feed later
             RoundedRectangle(cornerRadius: 10)
