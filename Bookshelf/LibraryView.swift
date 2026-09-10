@@ -341,7 +341,7 @@ struct LibraryView: View {
                             ForEach(books) { book in
                                 if enableReview {
                                     NavigationLink {
-                                        BookReviewView(book: book)
+                                        ReviewsPage(book: book)
                                     } label: {
                                         BookCard(book: book, showBadge: showBadge, showProgress: book.status == .reading)
                                     }
@@ -456,9 +456,11 @@ private struct BookCard: View {
             // Title & author beneath the cover
             VStack(alignment: .leading, spacing: 1) {
                 Text(book.title)
-                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .font(.system(size: 11, weight: .semibold, design: .serif))
                     .foregroundColor(Shelf.ink)
-                    .lineLimit(2)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                    .frame(height: 42, alignment: .top) // fixed, so every card is the same height regardless of title length
                 Text(book.author)
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundColor(Shelf.ink.opacity(0.6))
@@ -513,110 +515,6 @@ private struct ProgressBar: View {
             }
         }
         .frame(height: 5)
-    }
-}
- 
-// MARK: - Book Review
- 
-/// A dedicated page for writing your own thoughts on a completed book.
-/// Reached by tapping a book on the "Have Completed" shelf.
-struct BookReviewView: View {
-    let book: LibraryBook
- 
-    /// The user's review text. Empty for now — nothing pre-filled.
-    @State private var reviewText: String = ""
- 
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Shelf.wallTop, Shelf.wallBottom],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
- 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    header
- 
-                    Text("Your Review")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(Shelf.ink.opacity(0.8))
- 
-                    TextEditor(text: $reviewText)
-                        .font(.system(size: 15, weight: .regular, design: .rounded))
-                        .foregroundColor(Shelf.ink)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 260)
-                        .padding(10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.white.opacity(0.6))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Shelf.ink.opacity(0.1), lineWidth: 1)
-                        )
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 24)
-            }
-        }
-        .navigationTitle("Review")
-        .navigationBarTitleDisplayMode(.inline)
-    }
- 
-    private var header: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Group {
-                if let coverURL = book.coverURL {
-                    AsyncImage(url: coverURL) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        default:
-                            spineFill
-                        }
-                    }
-                } else {
-                    spineFill
-                }
-            }
-            .aspectRatio(3.0/4.2, contentMode: .fit)
-            .frame(width: 84)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Shelf.coverGold.opacity(0.55), lineWidth: 1.2)
-            )
-            .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 4)
- 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(book.title)
-                    .font(.system(size: 18, weight: .semibold, design: .serif))
-                    .foregroundColor(Shelf.ink)
-                Text(book.author)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(Shelf.ink.opacity(0.6))
-            }
-            .padding(.top, 4)
- 
-            Spacer()
-        }
-    }
- 
-    private var spineFill: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(
-                LinearGradient(
-                    colors: [book.spineColor.opacity(0.95), book.spineColor],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
     }
 }
  

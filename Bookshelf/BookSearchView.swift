@@ -161,7 +161,7 @@ extension GoogleBookItem {
             "box set", "boxed set", "boxset",
             "collection", "complete series", "complete collection",
             "omnibus", "bundle", "trilogy bundle",
-            "books 1-", "books 1–", "vol. 1-", "volumes 1-", "deluxe"
+            "books 1-", "books 1–", "vol. 1-", "volumes 1-", "deluxe", "set"
         ]
         let haystack = volumeInfo.title.lowercased()
         return bundleKeywords.contains { haystack.contains($0) }
